@@ -1,0 +1,12 @@
+[BUG]: no found input "src"
+
+## Command Line
+C:\Python312\Scripts\pyarmor gen src/
+
+## Environments
+Python 3.12.4
+Pyarmor 9.0.4 (trial), 000000, non-profits
+Platform windows.x86_64
+Native windows.amd64
+Home C:\Users\user\.pyarmor
+

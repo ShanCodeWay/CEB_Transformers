@@ -1,0 +1,16 @@
+.\venv\Scripts\activate
+
+pyinstaller --onefile --windowed --icon=assets.ico ^
+--add-data "src/add_icon.png;src" ^
+--add-data "src/update_icon.png;src" ^
+--add-data "src/delete_icon.png;src" ^
+--add-data "src/cancel_icon.png;src" ^
+--add-data "src/terminate_icon.png;src" ^
+--add-data "src/Export_icon.png;src" ^
+--add-data "src/Export_View_icon.png;src" ^
+--add-data "src/Search_icon.png;src" ^
+--add-data "src/BG.png;src" ^
+--add-data "src/Transformers.jpg;src" ^
+--add-data "src/LOGO.png;src" ^
+--add-data "src/assets.ico;src" ^
+main.py
