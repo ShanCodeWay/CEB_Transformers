@@ -1,0 +1,25 @@
+TransformerDataApp/
+│
+├── setup/                  # Folder for setup-related files
+	install.bat
+│   └── requirements.txt    # List of dependencies
+│
+├── src/                    # Your source files
+│   ├── main.py             # Main Python script
+│   ├── gui.py              # GUI logic
+│   └── run_app.bat         # Batch file to run the app
+        add_icon.png
+              BG.png
+              cancel_icon.png
+              delete_icon.png
+              Export_icon.png
+              Export_View_icon.png
+              LOGO.png
+              Search_icon.png
+              terminate_icon.png
+              Transformers.jpg
+              update_icon.png
+         
+                
+│    assets.png
+

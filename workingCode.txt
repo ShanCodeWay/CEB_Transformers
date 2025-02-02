@@ -1,0 +1,351 @@
+import tkinter as tk
+from tkinter import messagebox, ttk
+from PIL import Image, ImageTk
+import pandas as pd  # Import pandas to use DataFrame
+from excel_handler import  add_data, search_data, read_data
+from constants import EXCEL_FILE
+from tkinter import END, LEFT, RIGHT
+import os
+from datetime import datetime
+
+# Excel file to store data
+excel_file = 'transformer_data.xlsx'
+
+# Create or load the Excel file
+def create_or_load_file():
+    try:
+        df = pd.read_excel(excel_file)
+    except FileNotFoundError:
+        columns = ['Timestamp', 'Province', 'Area Code', 'Date', 'Transformer Serial No', 'KV', 'KVA',
+                   'Reason for Movement', 'Present Condition',
+                   'Movement From Cost Code', 'Movement From SIN Location',
+                   'Movement To Cost Code', 'Movement To SIN Location',
+                   'TV/WB No', 'Remark']
+        df = pd.DataFrame(columns=columns)
+        df.to_excel(excel_file, index=False)
+
+# Function to add data to the Excel sheet
+# Update add_data function to include automatic number and timestamp
+def add_data(data):
+    try:
+        df = pd.read_excel(excel_file)
+        new_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Timestamp
+        data['Timestamp'] = new_timestamp
+        new_data = pd.DataFrame([data], columns=df.columns) 
+        df = pd.concat([df, new_data], ignore_index=True)
+        df.to_excel(excel_file, index=False)
+        messagebox.showinfo("Success", "Data added successfully!")
+        update_last_entry_preview()
+        preview_all_entries()
+    except Exception as e:
+        messagebox.showerror("Error", f"Error while adding data: {str(e)}")
+
+# Function to preview last entry
+def update_last_entry_preview():
+    try:
+        df = pd.read_excel(excel_file)
+        last_entry = df.tail(1).to_string(index=False)
+        last_entry_text.delete(1.0, tk.END)
+        last_entry_text.insert(tk.END, last_entry)
+    except Exception as e:
+        messagebox.showerror("Error", f"Error while retrieving last entry: {str(e)}")
+
+# Function to preview all entries in a scrollable area
+# Modify the preview_all_entries function to color the rows
+def preview_all_entries():
+    try:
+        df = pd.read_excel(excel_file)
+        all_entries_text.delete(1.0, tk.END)  # Clear previous content
+        
+        for i, row in df.iterrows():
+            row_color = "#D0FFD0" if i % 2 == 0 else "#E0FFE0"  # Alternate row colors
+            row_str = ' | '.join([f"{col}: {row[col]}" for col in df.columns])  # Create a formatted string
+            
+            all_entries_text.insert(tk.END, row_str + '\n')
+            all_entries_text.tag_add(f'row_style_{i}', all_entries_text.index('end-2c'), all_entries_text.index('end-1c'))
+            all_entries_text.tag_configure(f'row_style_{i}', background=row_color)
+
+    except Exception as e:
+        messagebox.showerror("Error", f"Error while retrieving all entries: {str(e)}")
+# Function to search data
+
+# Function to fill input fields
+def fill_input_fields(row):
+    for field in fields.keys():
+        entries[field].delete(0, tk.END)  # Clear the entry field
+        entries[field].insert(0, row[field])  # Fill with the relevant data
+
+# Function to filter data by column and value
+def filter_data(column, value):
+    try:
+        df = pd.read_excel(excel_file)
+        filtered_results = df[df[column].astype(str).str.contains(value, case=False)]
+        if not filtered_results.empty:
+            messagebox.showinfo("Filtered Results", filtered_results.to_string(index=False))
+        else:
+            messagebox.showinfo("No Results", f"No data found for {column}: {value}.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Error while filtering data: {str(e)}")
+
+# Function to sort data by column
+def sort_data(column):
+    try:
+        df = pd.read_excel(excel_file)
+        sorted_df = df.sort_values(by=column)
+        messagebox.showinfo("Sorted Results", sorted_df.to_string(index=False))
+    except Exception as e:
+        messagebox.showerror("Error", f"Error while sorting data: {str(e)}")
+
+def export_data():
+    try:
+        df = pd.read_excel(excel_file)
+        # Create 'export' directory at the same level as the script if it doesn't exist
+        export_dir = os.path.join(os.path.dirname(__file__), '../export')
+        os.makedirs(export_dir, exist_ok=True)
+        
+        # Generate timestamped filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        export_file = os.path.join(export_dir, f"transformer_data_{timestamp}.xlsx")
+        
+        df.to_excel(export_file, index=False)
+        messagebox.showinfo("Export Success", f"Data exported successfully to {export_file}")
+    except Exception as e:
+        messagebox.showerror("Error", f"Error while exporting data: {str(e)}")
+
+    try:
+        df = pd.read_excel(excel_file)
+        # Create 'export' directory if it doesn't exist
+        export_dir = 'export'
+        os.makedirs(export_dir, exist_ok=True)
+        
+        # Generate timestamped filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        export_file = os.path.join(export_dir, f"transformer_data_{timestamp}.xlsx")
+        
+        df.to_excel(export_file, index=False)
+        messagebox.showinfo("Export Success", f"Data exported successfully to {export_file}")
+    except Exception as e:
+        messagebox.showerror("Error", f"Error while exporting data: {str(e)}")
+# Tkinter GUI setup
+
+
+# Add buttons for editing and deleting entries
+# Add buttons for editing and deleting entries
+def edit_data():
+    try:
+        selected_index = all_entries_text.index("insert linestart")
+        if selected_index:
+            # Get the line where the cursor is located
+            selected_data = all_entries_text.get(selected_index, f"{selected_index} lineend").strip()
+            if selected_data:
+                data_fields = selected_data.split(' | ')  # Split using the new delimiter
+                clear_input_fields()  # Clear input fields first
+                for field, value in zip(fields.keys(), data_fields):  # Map fields to values directly
+                    entries[field].insert(0, value.split(": ")[1])  # Insert only the value part
+                add_btn.config(text="Update", command=update_data)  # Change Add button to Update
+                messagebox.showinfo("Editing", "You can now edit the selected entry.")  # Alert user when editing
+            else:
+                messagebox.showwarning("Select Entry", "Please select an entry to edit.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Error while trying to edit: {str(e)}")
+
+def search_data(search_query):
+    try:
+        df = pd.read_excel(excel_file)
+        # Ensure the search query is not empty
+        if not search_query.strip():
+            messagebox.showwarning("Empty Search Query", "Please enter a search query.")
+            return
+        
+        # Use .any() to check if any row contains the search query
+        search_results = df[df.apply(lambda row: row.astype(str).str.contains(search_query, case=False, na=False).any(), axis=1)]
+        
+        if not search_results.empty:
+            fill_input_fields(search_results.iloc[0])  # Fill input fields with the first result
+            messagebox.showinfo("Search Results", search_results.to_string(index=False))
+        else:
+            messagebox.showinfo("No Results", "No data found for the search query.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Error while searching data: {str(e)}")
+
+def delete_data():
+    try:
+        selected_index = all_entries_text.index("insert linestart")  # Get index of the selected line
+        selected_data = all_entries_text.get(selected_index, f"{selected_index} lineend").strip()  # Get the selected line text
+
+        if selected_data:
+            df = pd.read_excel(excel_file)  # Read the current data from the Excel file
+            
+            # Create a dictionary from the selected data
+            entry_values = {field.split(": ")[0]: field.split(": ")[1] for field in selected_data.split(' | ')}
+            print("Entry Values for Deletion:", entry_values)  # Debugging output
+
+            # Find the row in the DataFrame that matches the selected entry
+            found_row = df[df.apply(lambda row: all(str(row[col]).strip() == entry_values[col].strip() for col in entry_values), axis=1)]
+
+            if not found_row.empty:
+                # Remove the selected row
+                df = df[~df.apply(lambda row: all(str(row[col]).strip() == entry_values[col].strip() for col in entry_values), axis=1)]
+                
+                # Write the updated DataFrame back to the Excel file
+                df.to_excel(excel_file, index=False)
+
+                messagebox.showinfo("Success", "Data deleted successfully!")  # Show success message
+                preview_all_entries()  # Refresh the preview
+            else:
+                messagebox.showwarning("Entry Not Found", "The selected entry could not be found in the data.")
+        else:
+            messagebox.showwarning("Select Entry", "Please select an entry to delete.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Error while trying to delete: {str(e)}")
+
+def fill_input_fields(row):
+    for field in fields.keys():
+        entries[field].delete(0, tk.END)  # Clear the entry field
+        entries[field].insert(0, row[field])  # Fill with the relevant data
+
+def fill_input_fields(row):
+    for field in fields.keys():
+        entries[field].delete(0, tk.END)  # Clear the entry field
+        entries[field].insert(0, row[field])  # Fill with the relevant data
+
+# Ensure to clear input fields on start
+
+def setup_gui():
+    global entries, fields  # Make entries and fields global for accessibility
+    fields = {
+        'Province': None,
+        'Area Code': None,
+        'Date': None,
+        'Transformer Serial No': None,
+        'KV': None,
+        'KVA': None,
+        'Reason for Movement': None,
+        'Present Condition': None,
+        'Movement From Cost Code': None,
+        'Movement From SIN Location': None,
+        'Movement To Cost Code': None,
+        'Movement To SIN Location': None,
+        'TV/WB No': None,
+        'Remark': None
+    }
+    
+    root = tk.Tk()
+    root.title("Transformer Data Entry")
+    root.geometry("800x600")  # Set a fixed size for the window
+
+    # Load background image
+    bg_image = tk.PhotoImage(file="BG.png")  # Use your image path here
+    bg_label = tk.Label(root, image=bg_image)
+    bg_label.place(relwidth=1, relheight=1)  # Set background to cover the entire window
+
+    left_frame = tk.Frame(root, bg="#134B70", padx=10, pady=10)  # Set light blue background for the left frame
+    left_frame.grid(row=0, column=0, sticky="nsew")
+
+    # Create a frame for right section (Searching, sorting, and previewing all data)
+    right_frame = tk.Frame(root, padx=10, pady=10)  # Remove bg color for the frame
+    right_frame.grid(row=0, column=1, sticky="nsew")
+
+    # Create a label to hold the background image for the right frame
+    right_bg_label = tk.Label(right_frame, image=bg_image)
+    right_bg_label.place(relwidth=1, relheight=1)  # Set to cover the entire right frame
+
+    # Adjust grid weights to allow resizing
+    root.grid_columnconfigure(0, weight=1)
+    root.grid_columnconfigure(1, weight=1)
+
+    # Left Section
+    title_label = tk.Label(left_frame, text="Add Transformer Data", font=("Helvetica", 18, "bold"), bg="lightblue", fg="#003366")  # Changed font style and color
+    title_label.grid(row=0, column=0, columnspan=2, pady=10)
+
+    entries = {}
+    row_num = 1
+
+    for field in fields:
+        tk.Label(left_frame, text=field, bg="lightblue", font=("Helvetica", 12)).grid(row=row_num, column=0, sticky="e", pady=5)
+        entry = tk.Entry(left_frame, width=40, bd=2, relief="groove")  # Adding border and elevation
+        entry.grid(row=row_num, column=1, padx=5, pady=5)
+
+        entries[field] = entry
+        row_num += 1
+
+    # Buttons for left section
+    # Buttons for left section
+    add_btn = tk.Button(left_frame, text="Add Data", font=("Helvetica", 12, "bold"), bg="#4682b4", fg="white", width=15,
+                        command=lambda: add_data({field: entries[field].get() for field in fields}))
+    add_btn.grid(row=row_num, column=0, columnspan=2, pady=10)
+
+      # Add Edit and Delete buttons
+    button_frame = tk.Frame(left_frame, bg="#134B70")  # Add a frame for buttons
+    button_frame.grid(row=14, column=0, pady=10)  # Place it at the bottom
+
+    edit_btn = tk.Button(button_frame, text="Edit", command=edit_data, bg="#4CAF50", fg="white")  # Green color for Edit
+    edit_btn.grid(row=0, column=0, padx=5)
+
+    delete_btn = tk.Button(button_frame, text="Delete", command=delete_data, bg="#F44336", fg="white")  # Red color for Delete
+    delete_btn.grid(row=0, column=1, padx=5)
+    # Define add_btn and place it in the GUI
+    
+    # Preview Last Entry Section
+    last_entry_label = tk.Label(left_frame, text="Last Entry Preview", font=("Helvetica", 14, "bold"), bg="lightblue", fg="#003366")  # Changed font style and color
+    last_entry_label.grid(row=row_num + 1, column=0, columnspan=2)
+
+    global last_entry_text
+    last_entry_text = tk.Text(left_frame, height=5, width=70, bd=2, relief="groove", bg="lightgray")
+    last_entry_text.grid(row=row_num + 2, column=0, columnspan=2, padx=10, pady=10)
+
+    # Right Section
+    right_title_label = tk.Label(right_frame, text="Search and Sort Data", font=("Helvetica", 18, "bold"), bg="lightblue", fg="#003366")  # Changed font style and color
+    right_title_label.grid(row=0, column=0, columnspan=2, pady=10)
+
+    search_entry = tk.Entry(right_frame, width=30, bd=2, relief="groove")
+    search_entry.grid(row=1, column=0, padx=10, pady=5)
+    search_btn = tk.Button(right_frame, text="Search", font=("Helvetica", 12, "bold"), bg="#4682b4", fg="white", width=15,
+                           command=lambda: search_data(search_entry.get()))
+    search_btn.grid(row=1, column=1, padx=10, pady=5)
+
+    # Filter by a specific column
+    filter_label = tk.Label(right_frame, text="Filter by Column", font=("Helvetica", 12), bg="lightblue")
+    filter_label.grid(row=2, column=0, padx=10, pady=5)
+
+    filter_entry = tk.Entry(right_frame, width=30, bd=2, relief="groove")
+    filter_entry.grid(row=2, column=1, padx=10, pady=5)
+
+    filter_btn = tk.Button(right_frame, text="Filter", font=("Helvetica", 12, "bold"), bg="#4682b4", fg="white", width=15,
+                           command=lambda: filter_data("Province", filter_entry.get()))  # Example for filtering by Province
+    filter_btn.grid(row=3, column=0, columnspan=2, padx=10, pady=5)
+
+    # Sort by a specific column
+    sort_label = tk.Label(right_frame, text="Sort by Column", font=("Helvetica", 12), bg="lightblue")
+    sort_label.grid(row=4, column=0, padx=10, pady=5)
+
+    sort_entry = tk.Entry(right_frame, width=30, bd=2, relief="groove")
+    sort_entry.grid(row=4, column=1, padx=10, pady=5)
+
+    sort_btn = tk.Button(right_frame, text="Sort", font=("Helvetica", 12, "bold"), bg="#4682b4", fg="white", width=15,
+                         command=lambda: sort_data(sort_entry.get()))  # Example for sorting by user input
+    sort_btn.grid(row=5, column=0, columnspan=2, padx=10, pady=5)
+   
+   
+    # Preview All Entries Section
+    preview_all_label = tk.Label(right_frame, text="All Entries Preview", font=("Helvetica", 14, "bold"), bg="lightblue", fg="#003366")  # Changed font style and color
+    preview_all_label.grid(row=6, column=0, columnspan=2)
+     
+    # Change the export button placement to the right section
+    export_btn = tk.Button(right_frame, text="Export Data", font=("Helvetica", 12, "bold"), bg="#ff4500", fg="white", width=15,
+                        command=export_data)  # Change bg color to a different color (e.g., orange)
+    export_btn.grid(row=8, column=0, padx=10, pady=10)  # Position it in the right section
+
+
+    global all_entries_text
+    all_entries_text = tk.Text(right_frame, height=15, width=70, bd=2, relief="groove", bg="lightgray")
+    all_entries_text.grid(row=7, column=0, columnspan=2, padx=10, pady=10)
+
+    create_or_load_file()  # Call function to create or load Excel file
+    update_last_entry_preview()  # Update last entry preview on startup
+    preview_all_entries()  # Preview all entries on startup
+
+    root.mainloop()
+
+if __name__ == "__main__":
+    setup_gui()
